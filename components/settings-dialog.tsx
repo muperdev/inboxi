@@ -89,7 +89,7 @@ function SettingsForm({
         event.preventDefault();
         const nextModel = model.trim();
         if (!isAssistantModel(nextModel)) {
-          toast.error("Use an OpenRouter model id, like openai/gpt-4.1-mini.");
+          toast.error("Use an OpenRouter model id, like z-ai/glm-5.3-flash.");
           return;
         }
         save.mutate({

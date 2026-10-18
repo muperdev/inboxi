@@ -1,10 +1,24 @@
 const { app, BrowserWindow } = require("electron");
 const { spawn } = require("node:child_process");
-const { createWriteStream, mkdirSync } = require("node:fs");
+const { createWriteStream, existsSync, mkdirSync } = require("node:fs");
 const net = require("node:net");
 const path = require("node:path");
 
 const children = [];
+
+function nodeExecutable() {
+  const name = `${app.getName()} Helper`;
+  const helper = path.join(
+    path.dirname(process.execPath),
+    "..",
+    "Frameworks",
+    `${name}.app`,
+    "Contents",
+    "MacOS",
+    name,
+  );
+  return existsSync(helper) ? helper : process.execPath;
+}
 
 function freePort() {
   return new Promise((resolve, reject) => {
@@ -65,7 +79,7 @@ async function startPackaged() {
   mail.stdout?.pipe(log);
   mail.stderr?.pipe(log);
   children.push(mail);
-  const web = spawn(process.execPath, ["server.js"], {
+  const web = spawn(nodeExecutable(), ["server.js"], {
     cwd: path.join(resources, "standalone"),
     env: {
       ...process.env,
