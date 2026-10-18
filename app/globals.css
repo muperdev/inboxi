@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --font-heading: var(--font-display);
+  --color-lavender: var(--lavender);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #f4f0f6;
+  --foreground: #2b2333;
+  --card: #fbf9fc;
+  --card-foreground: #2b2333;
+  --popover: #ffffff;
+  --popover-foreground: #2b2333;
+  --primary: #3d3446;
+  --primary-foreground: #f6efe6;
+  --secondary: #ebe5ee;
+  --secondary-foreground: #2b2333;
+  --muted: #ebe5ee;
+  --muted-foreground: #6f6577;
+  --accent: #e6dced;
+  --accent-foreground: #2b2333;
+  --lavender: #6b3fa0;
+  --destructive: #c23930;
+  --border: #e2dae6;
+  --input: #e2dae6;
+  --ring: #6b3fa0;
+  --chart-1: #6b3fa0;
+  --chart-2: #2b5f99;
+  --chart-3: #a8551c;
+  --chart-4: #1f7a4a;
+  --chart-5: #a83a63;
+  --radius: 0.875rem;
+  --sidebar: #ece6ef;
+  --sidebar-foreground: #2b2333;
+  --sidebar-primary: #6b3fa0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e0d8e5;
+  --sidebar-accent-foreground: #2b2333;
+  --sidebar-border: #e0d8e4;
+  --sidebar-ring: #6b3fa0;
+}
+
+.dark {
+  --background: #0d0d0d;
+  --foreground: #efe8f2;
+  --card: #141414;
+  --card-foreground: #efe8f2;
+  --popover: #1a191d;
+  --popover-foreground: #efe8f2;
+  --primary: #efe8f2;
+  --primary-foreground: #0d0d0d;
+  --secondary: #1c1b20;
+  --secondary-foreground: #efe8f2;
+  --muted: #1c1b20;
+  --muted-foreground: #a39ea6;
+  --accent: #241f2b;
+  --accent-foreground: #efe8f2;
+  --lavender: #b4a5f5;
+  --destructive: #f07872;
+  --border: #26252a;
+  --input: #26252a;
+  --ring: #b4a5f5;
+  --chart-1: #b4a5f5;
+  --chart-2: #9cc4ee;
+  --chart-3: #f3b88a;
+  --chart-4: #86d6a8;
+  --chart-5: #f0a3bf;
+  --sidebar: #111111;
+  --sidebar-foreground: #efe8f2;
+  --sidebar-primary: #b4a5f5;
+  --sidebar-primary-foreground: #17122a;
+  --sidebar-accent: #1f1e23;
+  --sidebar-accent-foreground: #efe8f2;
+  --sidebar-border: #1e1d22;
+  --sidebar-ring: #b4a5f5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent;
+  }
+  html {
+    @apply font-sans;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 14px;
+    line-height: 1.5;
+    letter-spacing: -0.011em;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-display {
+    font-variation-settings: "SOFT" 100, "WONK" 0;
+    font-optical-sizing: auto;
+  }
+}
