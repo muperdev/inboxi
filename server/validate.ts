@@ -151,9 +151,9 @@ export function readRewrite(value: unknown): { instruction: string; text: string
   const instruction = readString(record, "instruction") ?? "";
   const text = readString(record, "text") ?? "";
   const subject = readString(record, "subject") ?? "";
-  if (!instruction) throw new MailError("Say how the draft should change.");
-  if (!text) throw new MailError("Write a draft before asking for a rewrite.");
-  return { instruction, text, subject };
+  const context = readString(record, "context") ?? "";
+  if (!instruction) throw new MailError("Say what the message should say.");
+  return { instruction, text, subject, context };
 }
 
 export function readAsk(value: unknown): string {

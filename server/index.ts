@@ -5,6 +5,10 @@ import { askMail, rewriteDraft } from "./assistant";
 import { bus, notify } from "./bus";
 import { mailDb } from "./db";
 import { MailError, humanError } from "./errors";
+import { AuthenticationFailure } from "imapflow";
+import { nameFromEmail } from "../lib/format";
+import { presetFor } from "../lib/providers";
+import { googleRefreshSecret, signInWithGoogle } from "./google-auth";
 import { testImapLogin } from "./imap";
 import { applyThreadAction, downloadAttachment } from "./mailbox-actions";
 import { startAccount, startSavedAccounts, stopAccount } from "./runtime";
@@ -75,6 +79,51 @@ app.post("/threads/:id/action", async (c) => {
   const action = readAction(await c.req.json());
   await applyThreadAction(c.req.param("id"), action);
   return c.body(null, 204);
+});
+
+app.post("/accounts/google", async (c) => {
+  const session = await signInWithGoogle();
+  if (mailDb.emailExists(session.email)) throw new MailError("That inbox is already connected.");
+  const preset = presetFor("gmail");
+  const password = googleRefreshSecret(session.refreshToken);
+  try {
+    await testImapLogin({
+      host: preset.imapHost,
+      port: preset.imapPort,
+      username: session.email,
+      accessToken: session.accessToken,
+      email: session.email,
+    });
+    await verifySmtp({
+      provider: "gmail",
+      smtpHost: preset.smtpHost,
+      smtpPort: preset.smtpPort,
+      smtpSecure: preset.smtpSecure,
+      username: session.email,
+      password,
+    });
+  } catch (error) {
+    if (error instanceof AuthenticationFailure) {
+      throw new MailError("Google signed in, but Gmail refused the mailbox. Turn IMAP on in Gmail settings.");
+    }
+    throw error instanceof MailError ? error : new MailError(humanError(error));
+  }
+  const account = mailDb.insertAccount({
+    provider: "gmail",
+    email: session.email,
+    displayName: session.name || nameFromEmail(session.email),
+    password,
+    username: session.email,
+    imapHost: preset.imapHost,
+    imapPort: preset.imapPort,
+    smtpHost: preset.smtpHost,
+    smtpPort: preset.smtpPort,
+    smtpSecure: preset.smtpSecure,
+    aliases: [],
+  });
+  startAccount(account.id);
+  notify();
+  return c.json(account);
 });
 
 app.post("/accounts", async (c) => {
@@ -176,7 +225,7 @@ app.get("/events", (c) =>
 const port = Number(process.env.MAIL_API_PORT ?? 8787);
 
 startSavedAccounts();
-console.log(`Mailright listening on http://127.0.0.1:${port}`);
+console.log(`Inboxi listening on http://127.0.0.1:${port}`);
 
 export default {
   port,

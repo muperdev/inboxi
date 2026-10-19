@@ -5,7 +5,8 @@ export type ImapLogin = {
   host: string;
   port: number;
   username: string;
-  password: string;
+  password?: string;
+  accessToken?: string;
   email: string;
 };
 
@@ -14,14 +15,16 @@ export function createImapClient(login: ImapLogin, verifyOnly = false): ImapFlow
     host: login.host,
     port: login.port,
     secure: true,
-    auth: { user: login.username, pass: login.password },
+    auth: login.accessToken
+      ? { user: login.username, accessToken: login.accessToken }
+      : { user: login.username, pass: login.password },
     logger: false,
     disableAutoIdle: true,
     verifyOnly,
     connectionTimeout: 20_000,
     greetingTimeout: 15_000,
     socketTimeout: 120_000,
-    clientInfo: { name: "Mailright", version: "0.1.0" },
+    clientInfo: { name: "Inboxi", version: "0.1.0" },
   });
 }
 

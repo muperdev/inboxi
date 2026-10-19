@@ -76,7 +76,10 @@ export async function syncFolder(
     const start =
       lastUid > 0 ? lastUid + 1 : Math.max(1, uidNext - initialUidWindow(folder.role));
     if (start < uidNext) {
+      const total = uidNext - start;
       let seen = 0;
+      mailDb.setSyncProgress(accountId, 0, total);
+      notify();
       for await (const message of client.fetch(
         `${start}:*`,
         { uid: true, flags: true, source: true, size: true, internalDate: true, envelope: true },
@@ -98,7 +101,10 @@ export async function syncFolder(
             : await parseMail(message.source, message.flags, message.internalDate);
           mailDb.upsertMessage(accountId, folder.id, message.uid, parsed);
           seen += 1;
-          if (seen % 8 === 0) notify();
+          if (seen === 1 || seen % 3 === 0) {
+            mailDb.setSyncProgress(accountId, seen, total);
+            notify();
+          }
         } catch (error) {
           const reason = error instanceof Error ? error.message : "unknown error";
           console.error(`Skipped a message in ${folder.path}: ${reason}`);

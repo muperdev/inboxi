@@ -1,4 +1,4 @@
-# Mailright
+# Inboxi
 
 A local mail client for iCloud and Gmail. Messages, passwords, and the assistant key stay on your computer.
 

@@ -553,6 +553,8 @@ function writeSetting(key: string, value: string | null): void {
   ).run(key, value);
 }
 
+const syncProgress = new Map<string, { done: number; total: number }>();
+
 export const mailDb = {
   listAccounts(): Account[] {
     const rows = db
@@ -603,6 +605,8 @@ export const mailDb = {
       color: row.color,
       syncStatus: requireStatus(row.syncStatus),
       syncError: row.syncError,
+      syncDone: syncProgress.get(row.id)?.done ?? 0,
+      syncTotal: syncProgress.get(row.id)?.total ?? 0,
       lastSyncAt: row.lastSyncAt,
       inboxUnread: row.inboxUnread,
       starredCount: row.starredCount,
@@ -789,7 +793,12 @@ export const mailDb = {
     db.query("DELETE FROM identities WHERE id = ?").run(identityId);
   },
 
+  setSyncProgress(accountId: string, done: number, total: number): void {
+    syncProgress.set(accountId, { done, total });
+  },
+
   setSync(accountId: string, status: SyncStatus, error: string | null): void {
+    if (status === "idle" || status === "error") syncProgress.delete(accountId);
     db.query(
       `UPDATE accounts
        SET sync_status = ?, sync_error = ?, last_sync_at = CASE WHEN ? = 'idle' THEN ? ELSE last_sync_at END

@@ -13,7 +13,7 @@ import type {
   ThreadSummary,
 } from "@/lib/mail-types";
 
-type MailrightDesktop = { apiUrl?: string };
+type MailrightDesktop = { apiUrl?: string; desktop?: boolean };
 
 export function mailApiOrigin(): string {
   const desktop = (globalThis as { mailright?: MailrightDesktop }).mailright?.apiUrl;
@@ -75,6 +75,11 @@ export const mailApi = {
       method: "POST",
       body: JSON.stringify(input),
     }),
+  connectGoogle: () =>
+    request<Account>("/accounts/google", {
+      method: "POST",
+      body: "{}",
+    }),
   removeAccount: (accountId: string) =>
     request<void>(`/accounts/${accountId}`, { method: "DELETE" }),
   addAlias: (accountId: string, alias: AliasInput) =>
@@ -100,7 +105,7 @@ export const mailApi = {
       method: "PUT",
       body: JSON.stringify(input),
     }),
-  rewrite: (input: { instruction: string; text: string; subject: string }) =>
+  rewrite: (input: { instruction: string; text: string; subject: string; context?: string }) =>
     request<{ text: string }>("/ai/rewrite", {
       method: "POST",
       body: JSON.stringify(input),

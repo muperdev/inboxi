@@ -116,12 +116,30 @@ export function useThreadAction() {
 export function useMailEvents() {
   const queryClient = useQueryClient();
   useEffect(() => {
-    const source = new EventSource(`${mailApiOrigin()}/events`);
-    source.onmessage = () => {
+    let source: EventSource | null = null;
+    let timer = 0;
+    let stopped = false;
+
+    const refresh = () => {
       void queryClient.invalidateQueries({ queryKey: ["threads"] });
       void queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
       void queryClient.invalidateQueries({ queryKey: ["thread"] });
     };
-    return () => source.close();
+
+    const connect = () => {
+      source = new EventSource(`${mailApiOrigin()}/events`);
+      source.onmessage = refresh;
+      source.onerror = () => {
+        source?.close();
+        if (!stopped) timer = window.setTimeout(connect, 1500);
+      };
+    };
+
+    connect();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+      source?.close();
+    };
   }, [queryClient]);
 }

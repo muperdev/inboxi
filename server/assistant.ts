@@ -89,23 +89,24 @@ export async function rewriteDraft(input: {
   instruction: string;
   text: string;
   subject: string;
+  context?: string;
 }): Promise<string> {
   const { key, model } = credentials();
   const draft = clip(input.text, 12_000);
-  if (!draft) throw new MailError("Write a draft before asking for a rewrite.");
+  const context = clip(input.context ?? "", 6_000);
   const instruction = clip(input.instruction, 500);
-  if (!instruction) throw new MailError("Say how the draft should change.");
+  if (!instruction) throw new MailError("Say what the message should say.");
+
+  const system = draft
+    ? "You rewrite email for the person who is writing it. Return only the new message body. No subject line, no quotation marks, no commentary."
+    : "You write email for the person composing it. Return only the message body. No subject line, no quotation marks, no commentary.";
+  const user = draft
+    ? `Subject: ${clip(input.subject, 200) || "(none)"}\n\nInstruction: ${instruction}\n\nDraft:\n${draft}`
+    : `Subject: ${clip(input.subject, 200) || "(none)"}\n\nMessage they are replying to:\n${context || "(none)"}\n\nWhat they want to say:\n${instruction}`;
 
   return complete(key, model, [
-    {
-      role: "system",
-      content:
-        "You rewrite email for the person who is writing it. Return only the new message body. No subject line, no quotation marks, no commentary.",
-    },
-    {
-      role: "user",
-      content: `Subject: ${clip(input.subject, 200) || "(none)"}\n\nInstruction: ${instruction}\n\nDraft:\n${draft}`,
-    },
+    { role: "system", content: system },
+    { role: "user", content: user },
   ]);
 }
 
@@ -140,7 +141,7 @@ export async function askMail(prompt: string): Promise<{
     {
       role: "system",
       content:
-        "You are Mailright, a private assistant for one person's mailbox. Answer only from the messages provided. If they do not contain the answer, say so in one sentence. Do not invent senders, dates, or quotes. Keep the reply under 120 words.",
+        "You are Inboxi, a private assistant for one person's mailbox. Answer only from the messages provided. If they do not contain the answer, say so in one sentence. Do not invent senders, dates, or quotes. Keep the reply under 120 words.",
     },
     {
       role: "user",

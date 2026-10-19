@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Archive, ArrowLeft, Mail, Reply, Star, Trash2 } from "lucide-react";
+import { Archive, ArrowLeft, Mail, Reply, Sparkles, Star, Trash2 } from "lucide-react";
 import { MessageBody, attachmentHref } from "@/components/message-body";
 import { RewriteDraft } from "@/components/rewrite-draft";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
   displaySubject,
   formatFileSize,
   formatMessageTime,
+  companyDomain,
   initials,
   isEmail,
   normalizeEmail,
@@ -56,6 +57,9 @@ export function ReadingPane({
     ? folders.some((item) => item.accountId === thread.accountId && item.role === "archive")
     : false;
   const seen = useRef(new Set<string>());
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyAll, setReplyAll] = useState(false);
+  const [promptSignal, setPromptSignal] = useState(0);
 
   useEffect(() => {
     if (!thread?.unread || seen.current.has(thread.id)) return;
@@ -63,11 +67,23 @@ export function ReadingPane({
     onRead();
   }, [thread, onRead]);
 
+  useEffect(() => {
+    setReplyOpen(false);
+    setReplyAll(false);
+    setPromptSignal(0);
+  }, [thread?.id]);
+
+  useEffect(() => {
+    if (replySignal === 0) return;
+    setReplyAll(false);
+    setReplyOpen(true);
+  }, [replySignal]);
+
   return (
     <section className="flex min-h-0 min-w-0 flex-1 flex-col">
       {thread ? (
         <>
-          <header className="flex items-start gap-3 px-5 pt-6 pb-4 md:px-10">
+          <header className="message-titlebar flex items-start gap-3 px-5 pt-8 pb-5 md:px-8">
             <Button variant="ghost" size="icon-sm" className="mt-1 lg:hidden" aria-label="Back" onClick={onBack}>
               <ArrowLeft />
             </Button>
@@ -91,20 +107,57 @@ export function ReadingPane({
               </IconButton>
             </div>
           </header>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="mx-auto flex w-full max-w-3xl flex-col px-5 pb-10 md:px-10">
               {thread.messages.map((message, index) => (
                 <MessageCard
                   key={message.id}
                   message={message}
                   collapsed={index < thread.messages.length - 1}
+                  onReply={
+                    index === thread.messages.length - 1
+                      ? () => {
+                          setReplyAll(false);
+                          setReplyOpen(true);
+                        }
+                      : undefined
+                  }
+                  onReplyAll={
+                    index === thread.messages.length - 1
+                      ? () => {
+                          setReplyAll(true);
+                          setReplyOpen(true);
+                        }
+                      : undefined
+                  }
+                  onWrite={
+                    index === thread.messages.length - 1
+                      ? () => {
+                          setReplyAll(false);
+                          setReplyOpen(true);
+                          setPromptSignal((current) => current + 1);
+                        }
+                      : undefined
+                  }
                 />
               ))}
               <ReplyBox
                 thread={thread}
                 identities={identities}
                 ownEmails={ownEmails}
-                replySignal={replySignal}
+                open={replyOpen}
+                replyAll={replyAll}
+                promptSignal={promptSignal}
+                onOpenChange={(next) => {
+                  setReplyOpen(next);
+                  if (!next) setPromptSignal(0);
+                }}
+                onReplyAllChange={setReplyAll}
+                onWrite={() => {
+                  setReplyAll(false);
+                  setReplyOpen(true);
+                  setPromptSignal((current) => current + 1);
+                }}
               />
             </div>
           </div>
@@ -158,7 +211,47 @@ function IconButton({
   );
 }
 
-function MessageCard({ message, collapsed }: { message: MailMessage; collapsed: boolean }) {
+function SenderMark({ name, email }: { name: string; email: string }) {
+  const domain = companyDomain(email);
+  const [failed, setFailed] = useState(false);
+  if (!domain || failed) {
+    return (
+      <span
+        className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-medium text-lavender"
+        aria-hidden
+      >
+        {initials(name, email)}
+      </span>
+    );
+  }
+  return (
+    // Remote mark for the sender's domain. next/image would pull sharp into the desktop build.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=128`}
+      alt=""
+      width={36}
+      height={36}
+      referrerPolicy="no-referrer"
+      className="size-9 shrink-0 rounded-full bg-accent object-cover"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function MessageCard({
+  message,
+  collapsed,
+  onReply,
+  onReplyAll,
+  onWrite,
+}: {
+  message: MailMessage;
+  collapsed: boolean;
+  onReply?: () => void;
+  onReplyAll?: () => void;
+  onWrite?: () => void;
+}) {
   const [open, setOpen] = useState(!collapsed);
   useEffect(() => {
     setOpen(!collapsed);
@@ -191,12 +284,7 @@ function MessageCard({ message, collapsed }: { message: MailMessage; collapsed: 
   return (
     <article className="border-b py-5">
       <header className="flex items-start gap-3">
-        <span
-          className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-medium text-lavender"
-          aria-hidden
-        >
-          {initials(message.from.name, message.from.email)}
-        </span>
+        <SenderMark name={message.from.name} email={message.from.email} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-3">
             <p className="truncate text-sm font-medium">
@@ -212,6 +300,22 @@ function MessageCard({ message, collapsed }: { message: MailMessage; collapsed: 
           <p className="truncate text-xs text-muted-foreground">{recipientLine("To", message.to)}</p>
           {message.cc.length > 0 ? (
             <p className="truncate text-xs text-muted-foreground">{recipientLine("Cc", message.cc)}</p>
+          ) : null}
+          {onReply && onReplyAll && onWrite ? (
+            <div className="mt-3 flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={onReply}>
+                <Reply />
+                Reply
+              </Button>
+              <Button variant="outline" size="sm" onClick={onReplyAll}>
+                <Reply />
+                Reply all
+              </Button>
+              <Button variant="outline" size="sm" onClick={onWrite}>
+                <Sparkles />
+                Write with AI
+              </Button>
+            </div>
           ) : null}
         </div>
       </header>
@@ -241,19 +345,28 @@ function ReplyBox({
   thread,
   identities,
   ownEmails,
-  replySignal,
+  open,
+  replyAll,
+  promptSignal,
+  onOpenChange,
+  onReplyAllChange,
+  onWrite,
 }: {
   thread: ThreadDetail;
   identities: Identity[];
   ownEmails: ReadonlySet<string>;
-  replySignal: number;
+  open: boolean;
+  replyAll: boolean;
+  promptSignal: number;
+  onOpenChange: (open: boolean) => void;
+  onReplyAllChange: (replyAll: boolean) => void;
+  onWrite: () => void;
 }) {
   const latest = thread.messages[thread.messages.length - 1];
-  const [open, setOpen] = useState(false);
-  const [replyAll, setReplyAll] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const areaRef = useRef<HTMLTextAreaElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const accountIdentities = identities.filter((identity) => identity.accountId === thread.accountId);
   const matched = latest
     ? accountIdentities.find((identity) =>
@@ -265,11 +378,12 @@ function ReplyBox({
   const identity = matched ?? accountIdentities.find((item) => item.isPrimary) ?? accountIdentities[0];
 
   useEffect(() => {
-    if (replySignal === 0) return;
-    setReplyAll(false);
-    setOpen(true);
-    requestAnimationFrame(() => areaRef.current?.focus());
-  }, [replySignal]);
+    if (!open) return;
+    requestAnimationFrame(() => {
+      if (promptSignal === 0) areaRef.current?.focus();
+      boxRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, [open, replyAll, promptSignal]);
 
   if (!latest || !identity) return null;
 
@@ -287,12 +401,9 @@ function ReplyBox({
         (email) => !ownEmails.has(email) && !replyTo.includes(email),
       )
     : [];
-  const extraRecipients = [...latest.to, ...latest.cc].filter(
-    (address) => address.email && !ownEmails.has(address.email) && address.email !== latest.from.email,
-  );
 
   return (
-    <div className="py-5">
+    <div ref={boxRef} className="py-5">
       {open ? (
         <form
           className="rounded-2xl border bg-card p-3"
@@ -312,7 +423,7 @@ function ReplyBox({
                 replyToMessageId: latest.id,
               });
               setText("");
-              setOpen(false);
+              onOpenChange(false);
               toast.success("Sent");
             } catch (error) {
               toast.error(error instanceof Error ? error.message : "Could not send.");
@@ -334,10 +445,16 @@ function ReplyBox({
             required
           />
           <div className="pt-2">
-            <RewriteDraft text={text} subject={thread.subject} onChange={setText} />
+            <RewriteDraft
+              text={text}
+              subject={thread.subject}
+              context={latest.bodyText}
+              promptSignal={promptSignal}
+              onChange={setText}
+            />
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Discard
             </Button>
             <Button type="submit" disabled={sending || !isEmail(normalizeEmail(latest.from.email))}>
@@ -350,24 +467,27 @@ function ReplyBox({
           <Button
             variant="outline"
             onClick={() => {
-              setReplyAll(false);
-              setOpen(true);
+              onReplyAllChange(false);
+              onOpenChange(true);
             }}
           >
             <Reply />
             Reply
           </Button>
-          {extraRecipients.length > 0 ? (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setReplyAll(true);
-                setOpen(true);
-              }}
-            >
-              Reply all
-            </Button>
-          ) : null}
+          <Button
+            variant="outline"
+            onClick={() => {
+              onReplyAllChange(true);
+              onOpenChange(true);
+            }}
+          >
+            <Reply />
+            Reply all
+          </Button>
+          <Button variant="outline" onClick={onWrite}>
+            <Sparkles />
+            Write with AI
+          </Button>
         </div>
       )}
     </div>

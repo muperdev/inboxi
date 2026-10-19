@@ -50,6 +50,8 @@ export type Account = {
   color: string;
   syncStatus: SyncStatus;
   syncError: string | null;
+  syncDone: number;
+  syncTotal: number;
   lastSyncAt: number | null;
   inboxUnread: number;
   starredCount: number;

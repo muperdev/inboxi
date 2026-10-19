@@ -1,9 +1,16 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -98,43 +105,56 @@ function SettingsForm({
         });
       }}
     >
-      <div className="grid gap-1.5">
+      <div className="grid gap-3">
         <Label htmlFor="openrouter-key">OpenRouter API key</Label>
-        <Input
-          id="openrouter-key"
-          type="password"
-          autoComplete="off"
-          value={apiKey}
-          onChange={(event) => setApiKey(event.target.value)}
-          placeholder={configured ? "Saved on this Mac" : "sk-or-…"}
-        />
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          Create one at openrouter.ai. Leave this blank to keep the saved key.
-        </p>
+        <div className="grid gap-1.5">
+          <Input
+            id="openrouter-key"
+            type="password"
+            autoComplete="off"
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
+            placeholder={configured ? "Saved on this Mac" : "sk-or-…"}
+          />
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            Create one at openrouter.ai. Leave this blank to keep the saved key.
+          </p>
+        </div>
       </div>
-      <div className="grid gap-1.5">
+      <div className="grid gap-3">
         <Label htmlFor="openrouter-model">Model</Label>
-        <select
-          id="openrouter-model"
-          value={custom ? "custom" : model}
-          onChange={(event) => {
-            if (event.target.value === "custom") {
-              setCustom(true);
-              setModel("");
-              return;
-            }
-            setCustom(false);
-            setModel(event.target.value);
-          }}
-          className="h-10 rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-        >
-          {assistantModels.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.label}
-            </option>
-          ))}
-          <option value="custom">Custom model id</option>
-        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            id="openrouter-model"
+            className="flex h-10 w-full items-center justify-between gap-3 rounded-sm border border-input bg-card pr-3 pl-3 text-left text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+          >
+            <span className="min-w-0 flex-1 truncate">
+              {custom ? "Custom model" : assistantModels.find((item) => item.id === model)?.label}
+            </span>
+            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            {assistantModels.map((item) => (
+              <DropdownMenuItem
+                key={item.id}
+                onClick={() => {
+                  setCustom(false);
+                  setModel(item.id);
+                }}
+              >
+                {item.label}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuItem
+              onClick={() => {
+                setCustom(true);
+                setModel("");
+              }}
+            >
+              Custom model id
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         {custom ? (
           <Input
             value={model}

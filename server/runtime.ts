@@ -3,7 +3,8 @@ import { AuthenticationFailure } from "imapflow";
 import { notify } from "./bus";
 import { mailDb } from "./db";
 import { MailError, humanError } from "./errors";
-import { createImapClient } from "./imap";
+import { accessTokenFor, isGoogleRefresh } from "./google-auth";
+import { createImapClient, type ImapLogin } from "./imap";
 import { discoverFolders, syncFolder } from "./sync-folder";
 
 type Job = {
@@ -88,7 +89,10 @@ class AccountRuntime {
         delay = 2_000;
       } catch (error) {
         if (this.stopped) return;
-        const message = humanError(error);
+        const message =
+          error instanceof AuthenticationFailure && isGoogleRefresh(secretPassword(this.accountId))
+            ? "Google sign-in expired. Connect Gmail again."
+            : humanError(error);
         mailDb.setSync(this.accountId, "error", message);
         notify();
         console.error(message);
@@ -109,13 +113,7 @@ class AccountRuntime {
     mailDb.setSync(this.accountId, "connecting", null);
     notify();
 
-    const client = createImapClient({
-      host: secret.imapHost,
-      port: secret.imapPort,
-      username: secret.username,
-      password: secret.password,
-      email: secret.email,
-    });
+    const client = createImapClient(await imapLogin(secret));
     client.on("error", () => undefined);
     this.client = client;
 
@@ -188,6 +186,35 @@ const runtimes = new Map<string, AccountRuntime>();
 
 export function startSavedAccounts(): void {
   for (const accountId of mailDb.listAccountIds()) startAccount(accountId);
+}
+
+async function imapLogin(secret: {
+  imapHost: string;
+  imapPort: number;
+  username: string;
+  password: string;
+  email: string;
+}): Promise<ImapLogin> {
+  if (!isGoogleRefresh(secret.password)) {
+    return {
+      host: secret.imapHost,
+      port: secret.imapPort,
+      username: secret.username,
+      password: secret.password,
+      email: secret.email,
+    };
+  }
+  return {
+    host: secret.imapHost,
+    port: secret.imapPort,
+    username: secret.username,
+    accessToken: await accessTokenFor(secret.password),
+    email: secret.email,
+  };
+}
+
+function secretPassword(accountId: string): string {
+  return mailDb.getSecret(accountId)?.password ?? "";
 }
 
 export function startAccount(accountId: string): void {

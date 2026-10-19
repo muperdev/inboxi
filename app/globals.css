@@ -143,3 +143,30 @@
     font-optical-sizing: auto;
   }
 }
+
+html.desktop .app-titlebar {
+  min-height: 52px;
+  align-items: center;
+  padding-top: 0;
+  padding-bottom: 0;
+  -webkit-app-region: drag;
+}
+
+html.desktop aside .sidebar-titlebar {
+  justify-content: flex-end;
+  padding-right: 24px;
+  padding-left: 84px;
+}
+
+html.desktop .app-titlebar :is(button, a, input, label, [role="button"]) {
+  -webkit-app-region: no-drag;
+}
+
+html.desktop .message-titlebar {
+  padding-top: 28px;
+  -webkit-app-region: drag;
+}
+
+html.desktop .message-titlebar :is(button, a, input, label, [role="button"]) {
+  -webkit-app-region: no-drag;
+}

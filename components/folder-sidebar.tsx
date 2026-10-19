@@ -7,7 +7,6 @@ import {
   Inbox,
   Moon,
   MoreHorizontal,
-  PenLine,
   Plus,
   Send,
   Settings,
@@ -62,7 +61,6 @@ type FolderSidebarProps = {
   onFolder: (folder: MailFolder) => void;
   onAccount: (accountId: string | null) => void;
   onIdentity: (email: string, accountId: string) => void;
-  onCompose: () => void;
   onAssistant: () => void;
   assistantActive: boolean;
   onSettings: () => void;
@@ -80,7 +78,6 @@ export function FolderSidebar({
   onFolder,
   onAccount,
   onIdentity,
-  onCompose,
   onAssistant,
   assistantActive,
   onSettings,
@@ -92,28 +89,15 @@ export function FolderSidebar({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-3 pt-5">
-        <p className="flex items-center gap-2.5 px-3 font-display text-[22px] leading-none font-normal tracking-[-0.03em]">
-          {/* The mark is a local 28px asset. next/image would pull sharp into the desktop build. */}
+      <div className="app-titlebar sidebar-titlebar flex items-center px-6 pt-5">
+        <p className="flex items-center gap-2 font-display text-[22px] leading-none font-normal tracking-[-0.03em]">
+          {/* Local mark. next/image would pull sharp into the desktop build. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="" width={28} height={28} className="size-7 rounded-lg" />
-          <span>
-            Mail<em className="font-light italic">right</em>
-          </span>
+          <img src="/inboxi-emblem.png" alt="" width={26} height={26} className="size-[26px] rounded-[6px]" />
+          Inboxi
         </p>
       </div>
-      <nav className="mt-4 flex flex-col gap-0.5 px-3" aria-label="Folders">
-        <button
-          type="button"
-          onClick={() => {
-            onCompose();
-            onNavigate?.();
-          }}
-          className="flex h-10 w-full items-center gap-2.5 rounded-full bg-primary px-3 text-[13px] font-medium tracking-[-0.012em] text-primary-foreground transition-colors hover:bg-primary/88 active:scale-[0.98]"
-        >
-          <PenLine className="size-4" />
-          Compose
-        </button>
+      <nav className="mt-4 flex flex-col gap-1.5 px-3" aria-label="Folders">
         <button
           type="button"
           onClick={() => {
@@ -130,7 +114,7 @@ export function FolderSidebar({
         </button>
         {folderNav.map((item) => {
           const count = badgeCount(item.id, accounts, folders, accountId);
-          const active = folder === item.id;
+          const active = !assistantActive && folder === item.id;
           const Icon = item.icon;
           return (
             <button
@@ -259,27 +243,34 @@ function AccountBlock({
   const syncing = account.syncStatus === "syncing" || account.syncStatus === "connecting";
   const aliases = identities.filter((identity) => !identity.isPrimary);
 
+  const mark = account.displayName.trim().slice(0, 1).toUpperCase() || account.email.slice(0, 1).toUpperCase();
+
   return (
-    <div className={cn("rounded-2xl", active && "bg-sidebar-accent")}>
-      <div className="flex items-start gap-1 pr-1">
-        <button type="button" onClick={onSelect} className="min-w-0 flex-1 px-3 py-2 text-left">
-          <span className="flex items-center gap-2">
-            <span
-              className={cn("size-1.5 shrink-0 rounded-full", syncing && "animate-pulse")}
-              style={{
-                backgroundColor: account.syncStatus === "error" ? "var(--destructive)" : account.color,
-              }}
-              title={account.syncError ?? undefined}
-            />
-            <span className="truncate text-[13px] font-medium">{account.displayName}</span>
+    <div className={cn("rounded-xl", active && "bg-sidebar-accent")}>
+      <div className="flex items-center pr-1">
+        <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-2.5 px-2 py-1.5 text-left">
+          <span
+            className={cn(
+              "flex size-7 shrink-0 items-center justify-center rounded-full text-[11px] font-medium text-white",
+              syncing && "animate-pulse",
+            )}
+            style={{
+              backgroundColor: account.syncStatus === "error" ? "var(--destructive)" : account.color,
+            }}
+            title={account.syncError ?? undefined}
+          >
+            {mark}
           </span>
-          <span className="block truncate pl-3.5 text-[11px] text-muted-foreground">
-            {account.syncStatus === "error" ? "Sign-in failed" : account.email}
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium">{account.displayName}</span>
+            <span className="block truncate text-[11px] text-muted-foreground">
+              {account.syncStatus === "error" ? "Sign-in failed" : account.email}
+            </span>
           </span>
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger
-            className="mt-1 inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-background/70 hover:text-foreground"
             aria-label={`Options for ${account.email}`}
           >
             <MoreHorizontal className="size-3.5" />
@@ -300,7 +291,7 @@ function AccountBlock({
               type="button"
               onClick={() => onAlias(identity.email)}
               className={cn(
-                "block w-full truncate rounded-full py-1.5 pr-3 pl-8 text-left text-[12px] text-muted-foreground hover:bg-background/60 hover:text-foreground",
+                "block w-full truncate rounded-md py-1 pr-2 pl-11 text-left text-[12px] text-muted-foreground hover:text-foreground",
                 alias === identity.email && "font-medium text-lavender",
               )}
             >
@@ -436,7 +427,7 @@ function RemoveAccountDialog({
         <DialogHeader>
           <DialogTitle>Remove {account?.email}?</DialogTitle>
           <DialogDescription>
-            Mail stays on the server. This only removes it from Mailright on this computer.
+            Mail stays on the server. This only removes it from Inboxi on this computer.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

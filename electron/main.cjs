@@ -1,7 +1,8 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, nativeTheme } = require("electron");
 const { spawn } = require("node:child_process");
 const { createWriteStream, existsSync, mkdirSync } = require("node:fs");
 const net = require("node:net");
+const { homedir } = require("node:os");
 const path = require("node:path");
 
 const children = [];
@@ -37,11 +38,11 @@ async function waitFor(url, child) {
   const deadline = Date.now() + 30_000;
   let failure = null;
   const onExit = (code) => {
-    failure = new Error(`Mailright process exited (${code ?? "unknown"})`);
+    failure = new Error(`Inboxi process exited (${code ?? "unknown"})`);
   };
   child?.once("exit", onExit);
   child?.once("error", (error) => {
-    failure = error instanceof Error ? error : new Error("Mailright process failed to start");
+    failure = error instanceof Error ? error : new Error("Inboxi process failed to start");
   });
   try {
     while (Date.now() < deadline) {
@@ -106,8 +107,10 @@ function openWindow(webUrl, apiUrl) {
     height: 840,
     minWidth: 960,
     minHeight: 640,
-    title: "Mailright",
-    backgroundColor: "#f4f0f6",
+    title: "Inboxi",
+    titleBarStyle: "hiddenInset",
+    trafficLightPosition: { x: 16, y: 18 },
+    backgroundColor: nativeTheme.shouldUseDarkColors ? "#0d0d0d" : "#f4f0f6",
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       additionalArguments: apiUrl ? [`--mail-api=${apiUrl}`] : [],
@@ -123,8 +126,12 @@ const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
   app.quit();
 } else {
-  app.setName("Mailright");
-app.whenReady().then(async () => {
+  app.setName("Inboxi");
+  app.setPath(
+    "userData",
+    path.join(homedir(), "Library", "Application Support", "mail-right"),
+  );
+  app.whenReady().then(async () => {
     if (!app.isPackaged) {
       openWindow("http://localhost:3000", "");
       return;

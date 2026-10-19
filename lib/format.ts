@@ -17,6 +17,42 @@ export function nameFromEmail(email: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+const mailboxDomains = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "icloud.com",
+  "me.com",
+  "mac.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "msn.com",
+  "yahoo.com",
+  "ymail.com",
+  "aol.com",
+  "proton.me",
+  "protonmail.com",
+  "pm.me",
+  "fastmail.com",
+  "hey.com",
+  "mail.com",
+  "zoho.com",
+  "gmx.com",
+  "gmx.net",
+]);
+
+const multiPartSuffixes = new Set(["co.uk", "com.au", "co.jp", "com.br", "co.nz", "com.mx", "co.za", "com.tr"]);
+
+export function companyDomain(email: string): string | null {
+  const domain = email.trim().toLowerCase().split("@")[1]?.replace(/\.+$/, "");
+  if (!domain || !domain.includes(".")) return null;
+  const labels = domain.split(".");
+  const tail = labels.slice(-2).join(".");
+  const root = labels.length > 2 && multiPartSuffixes.has(tail) ? labels.slice(-3).join(".") : tail;
+  if (mailboxDomains.has(domain) || mailboxDomains.has(root)) return null;
+  return root;
+}
+
 export function initials(name: string, email: string): string {
   const source = name.trim() || email.trim();
   if (!source) return "?";

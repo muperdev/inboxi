@@ -29,7 +29,7 @@ export const providerPresets: readonly ProviderPreset[] = [
   {
     id: "gmail",
     label: "Gmail",
-    description: "Google accounts and send-as aliases",
+    description: "Sign in with Google",
     imapHost: "imap.gmail.com",
     imapPort: 993,
     smtpHost: "smtp.gmail.com",

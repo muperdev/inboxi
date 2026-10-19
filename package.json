@@ -53,7 +53,7 @@
   "build": {
     "electronVersion": "44.9.0",
     "appId": "com.mailright.app",
-    "productName": "Mailright",
+    "productName": "Inboxi",
     "directories": {
       "output": "release"
     },

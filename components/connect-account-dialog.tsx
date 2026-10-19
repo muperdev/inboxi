@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,7 +55,9 @@ function ConnectForm({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
-  const [provider, setProvider] = useState<ProviderId | null>(initialProvider);
+  const [provider, setProvider] = useState<ProviderId | null>(
+    initialProvider === "gmail" ? null : initialProvider,
+  );
   const preset = provider ? presetFor(provider) : null;
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -77,39 +79,63 @@ function ConnectForm({
       toast.error(error instanceof Error ? error.message : "Could not connect.");
     },
   });
+  const google = useMutation({
+    mutationFn: mailApi.connectGoogle,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["bootstrap"] });
+      toast.success("Inbox connected. Mail is coming in.");
+      onClose();
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Could not connect.");
+    },
+  });
+  const startGoogle = google.mutate;
+  const startedGoogle = useRef(false);
+
+  useEffect(() => {
+    if (initialProvider !== "gmail" || startedGoogle.current) return;
+    startedGoogle.current = true;
+    startGoogle();
+  }, [initialProvider, startGoogle]);
 
   if (!provider || !preset) {
     return (
-      <>
+      <div className="grid gap-5">
         <DialogHeader>
           <DialogTitle>Connect an inbox</DialogTitle>
-          <DialogDescription>
-            iCloud custom domains and Gmail send-as addresses are aliases on one login.
-          </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-2">
+        <div className="grid">
           {providerPresets.map((item) => (
             <button
               key={item.id}
               type="button"
+              disabled={item.id === "gmail" && google.isPending}
               onClick={() => {
+                if (item.id === "gmail") {
+                  if (!google.isPending) google.mutate();
+                  return;
+                }
                 setProvider(item.id);
                 setImapHost(item.imapHost);
                 setSmtpHost(item.smtpHost);
               }}
-              className="rounded-lg border px-3 py-2.5 text-left transition-colors hover:bg-muted"
+              className="flex items-center gap-3 rounded-md px-2 py-2.5 text-left transition-colors hover:bg-muted disabled:opacity-60"
             >
-              <span className="block text-sm font-medium">{item.label}</span>
-              <span className="block text-xs text-muted-foreground">{item.description}</span>
+              <ProviderLogo id={item.id} />
+              <span className="text-sm font-medium">
+                {item.id === "gmail" && google.isPending ? "Waiting for Google…" : item.label}
+              </span>
             </button>
           ))}
         </div>
-      </>
+      </div>
     );
   }
 
   return (
     <form
+      className="grid gap-6"
       onSubmit={(event) => {
         event.preventDefault();
         const normalized = normalizeEmail(email);
@@ -143,16 +169,9 @@ function ConnectForm({
     >
       <DialogHeader>
         <DialogTitle>Connect {preset.label}</DialogTitle>
-        <DialogDescription>
-          {preset.help}{" "}
-          {preset.helpHref ? (
-            <a href={preset.helpHref} target="_blank" rel="noreferrer">
-              Open the password page
-            </a>
-          ) : null}
-        </DialogDescription>
+        <DialogDescription>Use an app password, not the password for the account.</DialogDescription>
       </DialogHeader>
-      <div className="grid gap-3">
+      <div className="grid gap-4">
         <Field label="Email" value={email} onChange={setEmail} type="email" autoComplete="username" />
         <Field
           label="Name"
@@ -160,16 +179,28 @@ function ConnectForm({
           onChange={setDisplayName}
           placeholder="How you want to appear"
         />
-        <div className="grid gap-1.5">
+        <div className="grid gap-3">
           <div className="flex items-center justify-between">
             <Label htmlFor="mail-password">App password</Label>
-            <button
-              type="button"
-              className="text-xs text-muted-foreground hover:text-foreground"
-              onClick={() => setShowPassword((current) => !current)}
-            >
-              {showPassword ? "Hide" : "Show"}
-            </button>
+            <span className="flex items-center gap-3">
+              {preset.helpHref ? (
+                <a
+                  href={preset.helpHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-muted-foreground underline underline-offset-3 hover:text-foreground"
+                >
+                  Create one
+                </a>
+              ) : null}
+              <button
+                type="button"
+                className="text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPassword((current) => !current)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </span>
           </div>
           <Input
             id="mail-password"
@@ -245,7 +276,7 @@ function ConnectForm({
           ))}
         </div>
       </div>
-      <DialogFooter className="mt-4">
+      <DialogFooter>
         <Button type="button" variant="outline" onClick={() => setProvider(null)}>
           Back
         </Button>
@@ -254,6 +285,46 @@ function ConnectForm({
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+function ProviderLogo({ id }: { id: ProviderId }) {
+  if (id === "gmail") return <GmailLogo />;
+  if (id === "icloud") return <IcloudLogo />;
+  return <ImapLogo />;
+}
+
+function GmailLogo() {
+  return (
+    <svg viewBox="0 0 48 48" className="size-5 shrink-0" aria-hidden>
+      <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.75L35,40h7c1.657,0,3-1.343,3-3V16.2z" />
+      <path fill="#1e88e5" d="M3,16.2l3.614,1.71L13,23.7V40H6c-1.657,0-3-1.343-3-3V16.2z" />
+      <path fill="#e53935" d="M35,11.2 24,19.45 13,11.2 12,17 13,23.7 24,31.95 35,23.7 36,17z" />
+      <path fill="#c62828" d="M3,12.298V16.2l10,7.5V11.2L9.876,8.859C9.132,8.301,8.228,8,7.298,8h0C4.924,8,3,9.924,3,12.298z" />
+      <path fill="#fbc02d" d="M45,12.298V16.2l-10,7.5V11.2l3.124-2.341C38.868,8.301,39.772,8,40.702,8h0C43.076,8,45,9.924,45,12.298z" />
+    </svg>
+  );
+}
+
+function IcloudLogo() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0" aria-hidden>
+      <path
+        fill="#3693f5"
+        d="M19.35 10.04A7.49 7.49 0 0 0 12 4a7.48 7.48 0 0 0-6.65 4.04A6 6 0 0 0 6 20h13a5 5 0 0 0 .35-9.96"
+      />
+    </svg>
+  );
+}
+
+function ImapLogo() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-5 shrink-0 text-muted-foreground" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 4-8 5-8-5V6l8 5 8-5z"
+      />
+    </svg>
   );
 }
 
@@ -274,7 +345,7 @@ function Field({
 }) {
   const id = `connect-${label.toLowerCase().replace(/\s+/g, "-")}`;
   return (
-    <div className="grid gap-1.5">
+    <div className="grid gap-3">
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
