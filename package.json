@@ -1,8 +1,8 @@
 {
-  "name": "mail-right",
+  "name": "inboxi",
   "version": "0.1.0",
   "private": true,
-  "description": "A local mail client for iCloud and Gmail.",
+  "description": "Inboxi, a local mail client for iCloud and Gmail.",
   "scripts": {
     "dev": "bun run scripts/dev.ts",
     "dev:web": "next dev",
