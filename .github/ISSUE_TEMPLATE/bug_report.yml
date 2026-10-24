@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in Inboxi is broken or behaves wrongly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Search [existing issues](https://github.com/muperdev/inboxi/issues) first.
+        Do not paste passwords, tokens, API keys, or private mail. Security problems go to [a private advisory](https://github.com/muperdev/inboxi/security/advisories/new).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Connect an iCloud account
+        2. Open a thread in Archive
+        3. Press E
+    validations:
+      required: true
+  - type: dropdown
+    id: build
+    attributes:
+      label: How you run Inboxi
+      options:
+        - Desktop app from Releases
+        - Desktop app built locally (bun run desktop)
+        - bun dev
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Mail provider
+      multiple: true
+      options:
+        - iCloud
+        - Gmail
+        - Other IMAP
+        - Not related to a provider
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.1.0 or a1b2c3d
+    validations:
+      required: true
+  - type: input
+    id: macos
+    attributes:
+      label: macOS version
+      placeholder: macOS 27.2
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and screenshots
+      description: Terminal output from the mail server, browser console errors, or screenshots. Remove any personal data first.
+      render: text
